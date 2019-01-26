@@ -39,10 +39,6 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/iikira/args"
-
-[[constraint]]
-  branch = "master"
   name = "github.com/iikira/baidu-tools"
 
 [[constraint]]
@@ -52,6 +48,10 @@
 [[constraint]]
   branch = "master"
   name = "github.com/kardianos/osext"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/oleiade/lane"
 
 [[constraint]]
   branch = "master"

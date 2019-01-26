@@ -25,10 +25,18 @@ func init() {
 	PipeInput = (fileInfo.Mode() & os.ModeNamedPipe) == os.ModeNamedPipe
 }
 
+// TrimPathPrefix 去除目录的前缀
+func TrimPathPrefix(path, prefixPath string) string {
+	if prefixPath == "/" {
+		return path
+	}
+	return strings.TrimPrefix(path, prefixPath)
+}
+
 // ContainsString 检测字符串是否在字符串数组里
 func ContainsString(ss []string, s string) bool {
 	for k := range ss {
-		if strings.Compare(ss[k], s) == 0 {
+		if ss[k] == s {
 			return true
 		}
 	}
@@ -73,4 +81,20 @@ func FlagProvided(names ...string) bool {
 		}
 	}
 	return true
+}
+
+// Trigger 用于触发事件
+func Trigger(f func()) {
+	if f == nil {
+		return
+	}
+	go f()
+}
+
+// TriggerOnSync 用于触发事件, 同步触发
+func TriggerOnSync(f func()) {
+	if f == nil {
+		return
+	}
+	f()
 }

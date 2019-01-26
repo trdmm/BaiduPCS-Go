@@ -10,7 +10,6 @@ import (
 // HTTPClient http client
 type HTTPClient struct {
 	http.Client
-	jar       *cookiejar.Jar
 	transport *http.Transport
 	https     bool
 	UserAgent string
@@ -25,13 +24,14 @@ func NewHTTPClient() *HTTPClient {
 		},
 		UserAgent: UserAgent,
 	}
+	h.Client.Jar, _ = cookiejar.New(nil)
 	return h
 }
 
 func (h *HTTPClient) lazyInit() {
 	if h.transport == nil {
 		h.transport = &http.Transport{
-			Proxy:       http.ProxyFromEnvironment,
+			Proxy:       proxyFunc,
 			DialContext: dialContext,
 			Dial:        dial,
 			// DialTLS:     h.dialTLSFunc(),
@@ -48,10 +48,6 @@ func (h *HTTPClient) lazyInit() {
 		}
 		h.Client.Transport = h.transport
 	}
-	if h.jar == nil {
-		h.jar, _ = cookiejar.New(nil)
-		h.Client.Jar = h.jar
-	}
 }
 
 // SetUserAgent 设置 UserAgent 浏览器标识
@@ -59,21 +55,26 @@ func (h *HTTPClient) SetUserAgent(ua string) {
 	h.UserAgent = ua
 }
 
-// SetCookiejar 设置 cookie
-func (h *HTTPClient) SetCookiejar(c *cookiejar.Jar) {
-	if c == nil {
-		h.ResetCookiejar()
+// SetProxy 设置代理
+func (h *HTTPClient) SetProxy(proxyAddr string) {
+	u, err := checkProxyAddr(proxyAddr)
+	if err != nil {
+		h.transport.Proxy = http.ProxyFromEnvironment
 		return
 	}
 
-	h.jar = c
-	h.Client.Jar = c
+	h.lazyInit()
+	h.transport.Proxy = http.ProxyURL(u)
+}
+
+// SetCookiejar 设置 cookie
+func (h *HTTPClient) SetCookiejar(jar http.CookieJar) {
+	h.Client.Jar = jar
 }
 
 // ResetCookiejar 清空 cookie
 func (h *HTTPClient) ResetCookiejar() {
-	h.jar, _ = cookiejar.New(nil)
-	h.Jar = h.jar
+	h.Jar, _ = cookiejar.New(nil)
 }
 
 // SetHTTPSecure 是否启用 https 安全检查, 默认不检查
@@ -105,6 +106,12 @@ func (h *HTTPClient) SetGzip(b bool) {
 func (h *HTTPClient) SetResponseHeaderTimeout(t time.Duration) {
 	h.lazyInit()
 	h.transport.ResponseHeaderTimeout = t
+}
+
+// SetTLSHandshakeTimeout 设置tls握手超时时间
+func (h *HTTPClient) SetTLSHandshakeTimeout(t time.Duration) {
+	h.lazyInit()
+	h.transport.TLSHandshakeTimeout = t
 }
 
 // SetTimeout 设置 http 请求超时时间, 默认30s

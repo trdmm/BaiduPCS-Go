@@ -1,12 +1,20 @@
 package downloader
 
 import (
+	"github.com/iikira/BaiduPCS-Go/pcsverbose"
 	"github.com/iikira/BaiduPCS-Go/requester"
 	mathrand "math/rand"
 	"mime"
 	"net/url"
 	"path"
+	"regexp"
+	"strconv"
 	"time"
+)
+
+var (
+	// ContentRangeRE Content-Range 正则
+	ContentRangeRE = regexp.MustCompile(`^.*? \d*?-\d*?/(\d*?)$`)
 )
 
 // RandomNumber 生成指定区间随机数
@@ -35,7 +43,8 @@ func GetFileName(uri string, client *requester.HTTPClient) (filename string, err
 
 	_, params, err := mime.ParseMediaType(resp.Header.Get("Content-Disposition"))
 	if err != nil {
-		return "", err
+		pcsverbose.Verbosef("DEBUG: GetFileName ParseMediaType error: %s\n", err)
+		return path.Base(uri), nil
 	}
 
 	filename, err = url.QueryUnescape(params["filename"])
@@ -50,12 +59,18 @@ func GetFileName(uri string, client *requester.HTTPClient) (filename string, err
 	return
 }
 
-//trigger 用于触发事件
-func trigger(f func()) {
-	if f == nil {
-		return
+// ParseContentRange 解析Content-Range
+func ParseContentRange(contentRange string) (contentLength int64) {
+	raw := ContentRangeRE.FindStringSubmatch(contentRange)
+	if len(raw) < 2 {
+		return -1
 	}
-	go f()
+
+	c, err := strconv.ParseInt(raw[1], 10, 64)
+	if err != nil {
+		return -1
+	}
+	return c
 }
 
 func fixCacheSize(size *int) {
